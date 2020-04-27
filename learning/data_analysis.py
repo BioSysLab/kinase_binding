@@ -134,3 +134,30 @@ def calculate_metrics(y_true, y_pred, plots=False):
         plt.show()
 
     return metrics
+
+def load_weights_and_evaluate(eval_params):
+    preds_val = []
+    preds_test = []
+    dfs = []
+    model = eval_params['model']
+    if eval_params['model_type'] == 'gcn':
+        test_data = eval_params['model_class'].dataframe_to_gcn_input(eval_params['test_set'])
+    for i, df_val in enumerate(eval_params['val_sets']):
+        y_true = df_val.Binary
+        en_preds_val = []
+        en_preds_test = []
+        if eval_params['model_type'] == 'gcn':
+            val_data = eval_params['model_class'].dataframe_to_gcn_input(df_val)
+        for j in range(eval_params['n_ensemble']):
+            model.load_weights(eval_params['weight_file_format'].format(i,j))
+            pred_val = model.predict(val_data, batch_size = 1024)
+            en_preds_val.append(pred_val)
+            en_preds_test.append(model.predict(test_data,batch_size = 1024))
+        preds_val.append(np.mean(en_preds_val, axis = 0))
+        preds_test.append(np.mean(en_preds_test, axis = 0))
+        dfs.append(calculate_metrics(y_true.values, np.mean(en_preds_val, axis = 0).squeeze(), plots=True))
+    ave_preds = np.mean(preds_test,axis = 0)
+    dfs.append(calculate_metrics(eval_params['test_set'].Binary.values, ave_preds.squeeze(), plots=True))
+    metrics = pd.DataFrame(dfs)
+    metrics.rename(index={(len(eval_params['val_sets'])):'test_set'}, inplace=True)
+    return(metrics)
