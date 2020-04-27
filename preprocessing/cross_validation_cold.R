@@ -151,22 +151,3 @@ cross_validation(dataframe = all_data,d1 = d1,d2 = d2,d3 = d3,d4 = d4,d5 = d5,d6
                  d7 = d7,d8 = d8,allq1smiles = unique_rdkit,ecfp_sims = similarities,
                  no_folds = no_folds ,n_drugs = n_drugs ,max_sim = max_sim,
                  min_sim = min_sim,ratio = ratio,dir = dir)
-
-ecfp_sims <- as.matrix(similarities)
-diag(ecfp_sims) <- 0
-colmax <- apply(ecfp_sims,2,max)
-indcandidates <- which(colmax < max_sim & colmax >= min_sim)
-allq1smiles <- as.character(unique_rdkit$rdkit)
-names(colmax) <- allq1smiles
-candidates <- as.character(allq1smiles[indcandidates])
-d1_cand <- d1[which(d1 %in% candidates)]
-d2_cand <- d2[which(d2 %in% candidates)]
-d3_cand <- d3[which(d3 %in% candidates)]
-d4_cand <- d4[which(d4 %in% candidates)]
-d5_cand <- d5[which(d5 %in% candidates)]
-d6_cand <- d6[which(d6 %in% candidates)]
-d7_cand <- d7[which(d7 %in% candidates)]
-d8_cand <- d8[which(d8 %in% candidates)]
-
-sum(n_drugs)
-
