@@ -1,3 +1,10 @@
+"""
+This splitter works with the following strategy:
+ - start with a molecule (the one with minimum average distance with all the others)
+ - grab the molecule which is closest to it (in tanimoto similarity). Put these in the same fold.
+ - Continue and grab the next molecule which is the closest to them (closest to either of those) and add it.
+- When reaching fold_size stop.
+"""
 import pandas as pd
 from tqdm import tqdm
 
