@@ -1,6 +1,6 @@
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix, roc_curve, roc_auc_score, \
     auc, average_precision_score, pairwise_distances
-#import scikitplot as skplt
+# import scikitplot as skplt
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -8,6 +8,7 @@ import pandas as pd
 import functools
 import time
 from tqdm import tqdm
+
 tqdm.pandas()
 
 from rdkit import Chem
@@ -15,16 +16,29 @@ from rdkit.Chem import DataStructs, Descriptors
 from rdkit.Chem.AllChem import GetMorganFingerprintAsBitVect
 from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
+import hashlib
 
 important_rdkit_features = [
-    'BalabanJ', 'BertzCT', 'MaxAbsPartialCharge','MolLogP',
-     'MolWt', 'NumAliphaticCarbocycles', 'NumRotatableBonds', 'RingCount','SlogP_VSA10','TPSA']
+    'BalabanJ', 'BertzCT', 'MaxAbsPartialCharge', 'MolLogP', 'MolWt', 'NumAliphaticCarbocycles', 'NumRotatableBonds',
+    'RingCount', 'SlogP_VSA10', 'TPSA'
+]
 
-def get_morgan_fingerprints(
-    smiles,
-    radius=2,
-    fplength=1024
-):
+
+def biolab_indexing(df: pd.DataFrame, smiles_col: str) -> pd.DataFrame:
+    """
+    Gets a dataframe with a column with smiles and sets the index as a hash of the smiles.
+    Args:
+        df: the input dataframe.
+        smiles_col: the name of the column with the smiles.
+    Returns:
+        Indexed dataframe
+    """
+    df.reset_index(drop=True, inplace=True)
+    df['biolab_index'] = df[smiles_col].apply(hash)
+    return df.set_index('biolab_index')
+
+
+def get_morgan_fingerprints(smiles, radius=2, fplength=1024):
     fingerprint_function = functools.partial(GetMorganFingerprintAsBitVect, radius=radius, nBits=fplength)
     mols = pd.Series([Chem.MolFromSmiles(s) for s in smiles], smiles.index)
     return mols.apply(fingerprint_function)
@@ -40,10 +54,7 @@ def get_distance_matrix(mols):
     return pd.DataFrame(distances, index=mols.index, columns=mols.index)
 
 
-def get_rdkit_features(
-    df,
-    smiles_col='rdkit'
-):
+def get_rdkit_features(df, smiles_col='rdkit'):
     mols = pd.Series([Chem.MolFromSmiles(s) for s in df[smiles_col]], df.index)
     for name, func in tqdm(Descriptors.descList):
         if name in important_rdkit_features:
@@ -57,14 +68,18 @@ def plot_murcko_scaffolds(df, smiles_col='rdkit', max_elements=96, molsPerRow=10
 
 
 def murcko_scaffolds_analysis(train_df, val_df, class_label_col='Binary', max_elements=96, molsPerRow=10):
-    actives_train_msp = plot_murcko_scaffolds(train_df[train_df[class_label_col] == 1.0], max_elements=max_elements,
-                                              molsPerRow=molsPerRow)
-    inactives_train_msp = plot_murcko_scaffolds(train_df[train_df[class_label_col] == 0.0], max_elements=max_elements,
-                                                molsPerRow=molsPerRow)
-    actives_valid_msp = plot_murcko_scaffolds(val_df[val_df[class_label_col] == 1.0], max_elements=max_elements,
-                                              molsPerRow=molsPerRow)
-    inactives_valid_msp = plot_murcko_scaffolds(val_df[val_df[class_label_col] == 0.0], max_elements=max_elements,
-                                                molsPerRow=molsPerRow)
+    actives_train_msp = plot_murcko_scaffolds(
+        train_df[train_df[class_label_col] == 1.0], max_elements=max_elements, molsPerRow=molsPerRow
+    )
+    inactives_train_msp = plot_murcko_scaffolds(
+        train_df[train_df[class_label_col] == 0.0], max_elements=max_elements, molsPerRow=molsPerRow
+    )
+    actives_valid_msp = plot_murcko_scaffolds(
+        val_df[val_df[class_label_col] == 1.0], max_elements=max_elements, molsPerRow=molsPerRow
+    )
+    inactives_valid_msp = plot_murcko_scaffolds(
+        val_df[val_df[class_label_col] == 0.0], max_elements=max_elements, molsPerRow=molsPerRow
+    )
     fig, ax = plt.subplots(1, 2, figsize=(16, 12))
     ax[0].imshow(actives_train_msp)
     ax[0].set_title('Actives - Training Set')
@@ -110,12 +125,9 @@ def calculate_metrics(y_true, y_pred, plots=False):
         print('confusion matrix')
         plt.figure()
         group_names = ['True Neg', 'False Pos', 'False Neg', 'True Pos']
-        group_counts = ['{0:0.0f}'.format(value) for value in
-                        cf.flatten()]
-        group_percentages = ['{0:.2%}'.format(value) for value in
-                             cf.flatten() / np.sum(cf)]
-        labels = [f'{v1}\n{v2}\n{v3}' for v1, v2, v3 in
-                  zip(group_names, group_counts, group_percentages)]
+        group_counts = ['{0:0.0f}'.format(value) for value in cf.flatten()]
+        group_percentages = ['{0:.2%}'.format(value) for value in cf.flatten() / np.sum(cf)]
+        labels = [f'{v1}\n{v2}\n{v3}' for v1, v2, v3 in zip(group_names, group_counts, group_percentages)]
         labels = np.asarray(labels).reshape(2, 2)
         sns.heatmap(cf, annot=labels, fmt='', cmap='Blues')
         plt.show()
@@ -135,6 +147,7 @@ def calculate_metrics(y_true, y_pred, plots=False):
 
     return metrics
 
+
 def load_weights_and_evaluate(eval_params):
     preds_val = []
     preds_test = []
@@ -149,15 +162,15 @@ def load_weights_and_evaluate(eval_params):
         if eval_params['model_type'] == 'gcn':
             val_data = eval_params['model_class'].dataframe_to_gcn_input(df_val)
         for j in range(eval_params['n_ensemble']):
-            model.load_weights(eval_params['weight_file_format'].format(i,j))
-            pred_val = model.predict(val_data, batch_size = 1024)
+            model.load_weights(eval_params['weight_file_format'].format(i, j))
+            pred_val = model.predict(val_data, batch_size=1024)
             en_preds_val.append(pred_val)
-            en_preds_test.append(model.predict(test_data,batch_size = 1024))
-        preds_val.append(np.mean(en_preds_val, axis = 0))
-        preds_test.append(np.mean(en_preds_test, axis = 0))
-        dfs.append(calculate_metrics(y_true.values, np.mean(en_preds_val, axis = 0).squeeze(), plots=True))
-    ave_preds = np.mean(preds_test,axis = 0)
+            en_preds_test.append(model.predict(test_data, batch_size=1024))
+        preds_val.append(np.mean(en_preds_val, axis=0))
+        preds_test.append(np.mean(en_preds_test, axis=0))
+        dfs.append(calculate_metrics(y_true.values, np.mean(en_preds_val, axis=0).squeeze(), plots=True))
+    ave_preds = np.mean(preds_test, axis=0)
     dfs.append(calculate_metrics(eval_params['test_set'].Binary.values, ave_preds.squeeze(), plots=True))
     metrics = pd.DataFrame(dfs)
-    metrics.rename(index={(len(eval_params['val_sets'])):'test_set'}, inplace=True)
-    return(metrics)
+    metrics.rename(index={(len(eval_params['val_sets'])): 'test_set'}, inplace=True)
+    return (metrics)
