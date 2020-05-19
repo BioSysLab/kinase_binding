@@ -86,6 +86,7 @@ class GCN_hyper(object):
         return [x_atoms_cold, x_bonds_cold, x_edges_cold]
 
 def objective(fspace, train_sets, val_sets):
+    K.clear_session()
     maps = []
     es = EarlyStopping(monitor='loss',patience=8, min_delta=0)
     rlr = ReduceLROnPlateau(monitor='loss',factor=0.5, patience=4, verbose=1, min_lr=0.0000001)
