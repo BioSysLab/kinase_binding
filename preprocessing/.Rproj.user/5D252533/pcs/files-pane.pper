@@ -1,0 +1,9 @@
+{
+    "path" : "~/kinase_binding/preprocessing",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}

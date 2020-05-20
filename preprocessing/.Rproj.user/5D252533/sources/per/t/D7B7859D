@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1589922196394.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2983191160",
+    "id" : "D7B7859D",
+    "lastKnownWriteTime" : 1589929823,
+    "last_content_update" : 1589929823507,
+    "path" : "~/kinase_binding/preprocessing/triplets_v1.R",
+    "project_path" : "triplets_v1.R",
+    "properties" : {
+        "cursorPosition" : "89,0",
+        "scrollLine" : "58",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

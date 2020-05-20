@@ -1,7 +1,0 @@
-library(tidyverse)
-
-train <- read.csv("C:/Users/user/Documents/kinase_binding/learning/data/p38/split_aveb/fold_0/train_0.csv")
-
-trainsmiles <- as.character(train$rdkit)
-write.csv(trainsmiles,"C:/Users/user/Documents/kinase_binding/learning/data/p38/split_aveb/fold_0/trainsmiles.csv")
-
