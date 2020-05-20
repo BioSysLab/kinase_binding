@@ -1,2 +1,3 @@
 *.pyc
 *.DS_Store
+/learning/data/p38/split_aveb/fold_0/trainsims.csv
