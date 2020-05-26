@@ -40,7 +40,7 @@ fmin_objective = partial(objective, train_sets = train_sets, val_sets = val_sets
 
 def run_trials():
 
-    trials_step = 100  # how many additional trials to do after loading saved trials. 1 = save after iteration
+    trials_step = 2  # how many additional trials to do after loading saved trials. 1 = save after iteration
     max_trials = 2  # initial max_trials. put something small to not have to wait
 
 
