@@ -11,8 +11,6 @@ import scikitplot as skplt
 import seaborn as sns
 import tensorflow as tf
 import xgboost as xgb
-from NGF.preprocessing import tensorise_smiles
-from custom_layers.model_creator import encode_smiles, stage_creator
 from keras.layers import Dense, Dropout, Input, Lambda
 from keras.models import Model, Sequential, load_model
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -23,6 +21,10 @@ from sklearn.metrics import accuracy_score, accuracy_score, auc, auc, average_pr
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.svm import SVC, SVR
 from tqdm import tqdm
+
+from data_analysis import calculate_metrics, get_rdkit_features
+from NGF.preprocessing import tensorise_smiles
+from custom_layers.model_creator import encode_smiles, stage_creator
 
 
 class GCN_pretraining(object):
