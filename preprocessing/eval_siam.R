@@ -1,7 +1,7 @@
 library(Rtsne)
 library(tidyverse)
 
-embs <- read.csv("C:/Users/user/Documents/kinase_binding/learning/data/p38/split_aveb/fold_0/embeddings_0.csv")
+embs <- read.csv("C:/Users/user/Documents/kinase_binding/learning/data/p38/split_aveb/fold_0/embeddings/embeddings_0/embeddings_val.csv")
 embs <- embs[,-1]
 val <- read.csv("C:/Users/user/Documents/kinase_binding/learning/data/p38/split_aveb/fold_0/val_0.csv")
 train <- read.csv("C:/Users/user/Documents/kinase_binding/learning/data/p38/split_aveb/fold_0/train_0.csv")
@@ -10,22 +10,30 @@ tsne_emb <- Rtsne(scale(embs), dims = 2, perplexity=5, verbose=TRUE, max_iter = 
 df_emb_test <- data.frame(V1 = tsne_emb$Y[,1], V2 =tsne_emb$Y[,2], label = as.factor(val$Binary))
 gtsne_test <- ggplot(df_emb_test, aes(V1, V2))+
   geom_point(aes(color = label),show.legend = T) + scale_color_discrete()
-gtsne
+gtsne_test
 
-train_embs <- read.csv("C:/Users/user/Documents/kinase_binding/learning/data/p38/split_aveb/fold_0/embeddings_train_0.csv")
+train_embs <- read.csv("C:/Users/user/Documents/kinase_binding/learning/data/p38/split_aveb/fold_0/embeddings/embeddings_0/embeddings_train.csv")
 train_embs <- train_embs[,-1]
 
-tsne_emb_train <- Rtsne(scale(train_embs), dims = 2, perplexity=100, verbose=TRUE, max_iter = 1000,initial_dims = 50,check_duplicates = F)
+tsne_emb_train <- Rtsne(scale(train_embs), dims = 2, perplexity=20, verbose=TRUE, max_iter = 1000,initial_dims = 50,check_duplicates = F)
 df_emb <- data.frame(V1 = tsne_emb_train$Y[,1], V2 =tsne_emb_train$Y[,2], label = as.factor(train$Binary))
 gtsne <- ggplot(df_emb, aes(V1, V2))+
   geom_point(aes(color = label),show.legend = T) + scale_color_discrete()
 gtsne
 
+#tsne all together
+
+tsne_all <- Rtsne(scale(rbind(train_embs,embs)), dims = 2, perplexity=20, verbose=TRUE, max_iter = 1000,initial_dims = 50,check_duplicates = F)
+df_all <- data.frame(V1 = tsne_all$Y[,1], V2 =tsne_all$Y[,2], label = as.factor(c(train$Binary,paste0("test",val$Binary))))
+gtsne_all <- ggplot(df_all, aes(V1, V2))+
+  geom_point(aes(color = label),show.legend = T) + scale_color_discrete()
+gtsne_all
+
 require("class")
 
-model1<- knn(train=(train_embs), test=(embs), cl=as.factor(train$Binary), k=300)
+model1<- knn(train=(train_embs), test=(embs), cl=as.factor(train$Binary), k=1)
 tab <- table(model1,as.factor(val$Binary))
-
+tab
 accuracy <- function(x){sum(diag(x)/(sum(rowSums(x)))) * 100}
 accuracy(tab)
 
