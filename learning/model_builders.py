@@ -115,9 +115,7 @@ class GCN_pretraining(object):
         return [x_atoms_cold, x_bonds_cold, x_edges_cold]
 
 
-
-
-def triplet_loss(y_true, y_pred, alpha = 0.5):
+def triplet_loss(y_true, y_pred, alpha=0.5):
     """
     Implementation of the triplet loss function
     Arguments:
@@ -333,23 +331,25 @@ baselines_map = {
 }
 
 
-def get_baselines_performance(df_train, df_val, label_col='Binary'):
+def get_baselines_performance(df_train, df_val, label_col='Binary', use_only=None):
     df_train = get_rdkit_features(df_train)
     df_val = get_rdkit_features(df_val)
     input_cols = [
         'BalabanJ', 'BertzCT', 'MaxAbsPartialCharge', 'MolLogP', 'MolWt', 'NumAliphaticCarbocycles',
         'NumRotatableBonds', 'RingCount', 'SlogP_VSA10', 'TPSA'
     ]
-
+    if use_only is None:
+        use_only = baselines_map.keys()
     metrics = {}
     for name, model in baselines_map.items():
-        if name == 'simple-NN':
-            model.fit(df_train[input_cols].values, df_train[label_col].values, epochs=30, batch_size=32)
-        else:
-            model.fit(df_train[input_cols].values, df_train[label_col].values)
+        if name in use_only:
+            if name == 'simple-NN':
+                model.fit(df_train[input_cols].values, df_train[label_col].values, epochs=30, batch_size=32)
+            else:
+                model.fit(df_train[input_cols].values, df_train[label_col].values)
 
-        y_pred = model.predict(df_val[input_cols].values).squeeze()
-        y_true = df_val[label_col].values.squeeze()
-        metrics[name] = calculate_metrics(y_true, y_pred)
+            y_pred = model.predict(df_val[input_cols].values).squeeze()
+            y_true = df_val[label_col].values.squeeze()
+            metrics[name] = calculate_metrics(y_true, y_pred)
 
     return pd.DataFrame(metrics).T
