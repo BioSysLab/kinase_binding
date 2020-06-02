@@ -85,7 +85,8 @@ class GCN_pretraining(object):
                                                                     max_atoms=self.encoder_params['max_atoms'])
         return [x_atoms_cold, x_bonds_cold, x_edges_cold]
 
-def triplet_loss(y_true, y_pred, alpha = 0.2):
+
+def triplet_loss(y_true, y_pred, alpha = 0.5):
     """
     Implementation of the triplet loss function
     Arguments:

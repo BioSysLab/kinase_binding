@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1589978745566.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1876337291",
+    "id" : "BAABF1B6",
+    "lastKnownWriteTime" : 1590924443,
+    "last_content_update" : 1590924443691,
+    "path" : "~/kinase_binding/preprocessing/eval_siam.R",
+    "project_path" : "eval_siam.R",
+    "properties" : {
+        "cursorPosition" : "36,0",
+        "scrollLine" : "13",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
