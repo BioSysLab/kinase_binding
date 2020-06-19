@@ -13,9 +13,9 @@ from hyper_mining import objective_fn
 
 fspace = {
     'conv1' : hp.quniform('conv1', 32, 96, 8),
-    'conv2' : hp.quniform('conv2', 48, 128, 8),
-    'conv3' : hp.quniform('conv3', 64, 168, 8),
-    'fp' : hp.quniform('fp', 64, 196, 8),
+    'conv2' : hp.quniform('conv2', 64, 128, 8),
+    'conv3' : hp.quniform('conv3', 128, 168, 8),
+    'fp' : hp.quniform('fp', 96, 196, 8),
     'dense1' : hp.quniform('dense1',96,512,32),
     'dense2' : hp.quniform('dense2',96,512,32),
     'dense3' : hp.quniform('dense3',64,512,32),
@@ -33,7 +33,7 @@ fspace = {
     'reg_lambda' : hp.uniform('reg_lambda',0.1,100),
     'subsample' : hp.uniform('subsample',0.1,1.0),
     'max_bin' : hp.quniform('max_bin',16,256,16),
-    'margin' : hp.uniform('margin',0.001,2)
+    'margin' : hp.uniform('margin',0.2,2)
 }
 
 target = 'p38'
