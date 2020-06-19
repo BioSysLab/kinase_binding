@@ -33,7 +33,7 @@ fspace = {
     'reg_lambda' : hp.uniform('reg_lambda',0.1,100),
     'subsample' : hp.uniform('subsample',0.1,1.0),
     'max_bin' : hp.quniform('max_bin',16,256,16),
-    'margin' : hp.uniform('margin',0.0,2)
+    'margin' : hp.uniform('margin',0.001,2)
 }
 
 target = 'p38'
