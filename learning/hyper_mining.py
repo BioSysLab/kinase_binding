@@ -249,7 +249,6 @@ def objective_fn(fspace,train_sets,val_sets):
         "eval_metric":'auc',
         "objective":'binary:logistic',
         "booster":'gbtree',
-        "tree_method" : 'gpu_hist',
         "single_precision_histogram" : True
         }
     class_XGB = XGB_predictor(xgb_params)
