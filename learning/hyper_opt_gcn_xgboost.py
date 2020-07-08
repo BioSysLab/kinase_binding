@@ -22,6 +22,7 @@ fspace = {
     'dropout_rate' : hp.uniform('dropout_rate',0.1,0.5),
     'lr' : hp.uniform('lr',0.00001,0.01),
     'n_epochs' : hp.quniform('n_epochs',15,60,5),
+    'batch_size' : hp.quniform('batch_size',64,512,32),
     'colsample_bylevel' : hp.uniform('colsample_bylevel', 0.1, 1), 
     'colsample_bytree' : hp.uniform('colsample_bytree', 0.1, 1), 
     'gamma' : hp.uniform('gamma', 0.1, 1), 

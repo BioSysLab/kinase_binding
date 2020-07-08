@@ -177,8 +177,8 @@ class GCN_online_mining(object):
         mining_net.compile(optimizer=adam , loss = triplet_loss_adapted_from_tf)
         return mining_net
     
-    def dataframe_to_gcn_input(input_data):
-        x_atoms_cold, x_bonds_cold, x_edges_cold = tensorise_smiles(input_data,
+    def dataframe_to_gcn_input(self,input_data):
+        x_atoms_cold, x_bonds_cold, x_edges_cold = tensorise_smiles(input_data['rdkit'],
                                                                     max_degree=self.model_params['max_degree'],max_atoms=self.model_params['max_atoms'])
         return [x_atoms_cold, x_bonds_cold, x_edges_cold]
 
