@@ -183,6 +183,169 @@ class GCN_online_mining(object):
         return [x_atoms_cold, x_bonds_cold, x_edges_cold]
 
 
+class GCN_online_mining_test(object):
+    
+    def __init__(self,  model_params):
+        self.model_params = model_params
+    
+    def build_encoder(self):
+        model_enc_1 = stage_creator(self.model_params, 1, conv=True)[0]
+        model_enc_2 = stage_creator(self.model_params, 2, conv=True)[0]
+        model_enc_3 = stage_creator(self.model_params, 3, conv=True)[0]
+        
+        model_enc_fp_1 = stage_creator(self.model_params, 1, conv=False)[1]
+        model_enc_fp_2 = stage_creator(self.model_params, 2, conv=False)[1]
+        model_enc_fp_3 = stage_creator(self.model_params, 3, conv=False)[1]
+        
+        atoms, bonds, edges = encode_smiles(self.model_params["max_atoms"],
+                                            self.model_params["num_atom_features"],
+                                            self.model_params["max_degree"],
+                                            self.model_params["num_bond_features"])
+        
+        graph_conv_1 = model_enc_1([atoms, bonds, edges])
+        graph_conv_2 = model_enc_2([graph_conv_1, bonds, edges])
+        graph_conv_3 = model_enc_3([graph_conv_2, bonds, edges])
+        
+        fingerprint_1 = model_enc_fp_1([graph_conv_1, bonds, edges])
+        fingerprint_1 = Lambda(lambda x: K.sum(x, axis=1), output_shape=lambda s: (s[0], s[2]))(fingerprint_1)
+        
+        fingerprint_2 = model_enc_fp_2([graph_conv_2, bonds, edges])
+        fingerprint_2 = Lambda(lambda x: K.sum(x, axis=1), output_shape=lambda s: (s[0], s[2]))(fingerprint_2)
+        
+        fingerprint_3 = model_enc_fp_3([graph_conv_3, bonds, edges])
+        fingerprint_3 = Lambda(lambda x: K.sum(x, axis=1), output_shape=lambda s: (s[0], s[2]))(fingerprint_3)
+        
+        final_fingerprint = keras.layers.add([fingerprint_1, fingerprint_2, fingerprint_3])
+        return Model([atoms, bonds, edges], [final_fingerprint])
+    
+    def build_model(self, encoder, verbose=False):
+        atoms = Input(name='atom_inputs',shape=(self.model_params['max_atoms'],
+                                                self.model_params['num_atom_features']), dtype='float32')
+        bonds = Input(name='bond_inputs', shape=(self.model_params['max_atoms'], 
+                                                 self.model_params['max_degree'],
+                                                 self.model_params['num_bond_features']),dtype='float32')
+        edges = Input(name='edge_inputs', shape=(self.model_params['max_atoms'], 
+                                                 self.model_params['max_degree']),dtype='int32')
+        encode_drug = encoder([atoms, bonds, edges])
+        
+        # Fully connected
+        FC1 = Dense(self.model_params["dense_size"][0], 
+                    activation='relu',kernel_initializer='random_normal')(encode_drug)
+        FC2 = Dropout(self.model_params["dropout_rate"][0])(FC1)
+        FC2 = Dense(self.model_params["dense_size"][1], 
+                    activation='relu',kernel_initializer='random_normal')(FC2)
+        FC2 = Dropout(self.model_params["dropout_rate"][1])(FC2)
+        FC2 = Dense(self.model_params["dense_size"][2], 
+                    activation = None,kernel_initializer='random_normal')(FC2)
+        
+        
+        embeddings = Lambda(lambda x: K.l2_normalize(x,axis=1),name = 'Embeddings')(FC2)
+        
+        gcn_model = Model(inputs=[atoms, bonds, edges], outputs = embeddings)
+        
+        if verbose:
+            print('encoder')
+            encoder.summary()
+            print('GCN_model')
+        return gcn_model
+    
+    def build_mining(self,gcn_model):
+        atoms = Input(name='atom_inputs',shape=(self.model_params['max_atoms'],
+                                                self.model_params['num_atom_features']), dtype='float32')
+        bonds = Input(name='bond_inputs', shape=(self.model_params['max_atoms'], 
+                                                 self.model_params['max_degree'],
+                                                 self.model_params['num_bond_features']),dtype='float32')
+        edges = Input(name='edge_inputs', shape=(self.model_params['max_atoms'], 
+                                                 self.model_params['max_degree']),dtype='int32')
+        labels = Input(name = 'labels_inputs',shape = (1,),dtype = 'float32')
+        encoded = gcn_model([atoms,bonds,edges])
+        labels_plus_embeddings = concatenate([labels, encoded])
+        mining_net = Model(inputs = [atoms,bonds,edges,labels],outputs = labels_plus_embeddings)
+        adam = keras.optimizers.Adam(lr = self.model_params["lr"], 
+                                     beta_1=0.9, 
+                                     beta_2=0.999, 
+                                     decay=0.0, 
+                                     amsgrad=False)
+        mining_net.compile(optimizer=adam , loss = triplet_loss_adapted_from_tf_2)
+        return mining_net
+    
+    def dataframe_to_gcn_input(self,input_data):
+        x_atoms_cold, x_bonds_cold, x_edges_cold = tensorise_smiles(input_data['rdkit'],
+                                                                    max_degree=self.model_params['max_degree'],max_atoms=self.model_params['max_atoms'])
+        return [x_atoms_cold, x_bonds_cold, x_edges_cold]
+    
+    
+def triplet_loss_adapted_from_tf_2(y_true, y_pred,margin = 0.6011401246738063):
+        del y_true
+        margin = margin
+        labels = y_pred[:, :1]
+        labels = tf.cast(labels, dtype='int32')
+        embeddings = y_pred[:, 1:]
+
+        ### Code from Tensorflow function [tf.contrib.losses.metric_learning.triplet_semihard_loss] starts here:
+    
+        # Reshape [batch_size] label tensor to a [batch_size, 1] label tensor.
+        # lshape=array_ops.shape(labels)
+        # assert lshape.shape == 1
+        # labels = array_ops.reshape(labels, [lshape[0], 1])
+
+        # Build pairwise squared distance matrix.
+        pdist_matrix = pairwise_distance(embeddings, squared=False)
+        # Build pairwise binary adjacency matrix.
+        adjacency = math_ops.equal(labels, array_ops.transpose(labels))
+        # Invert so we can select negatives only.
+        adjacency_not = math_ops.logical_not(adjacency)
+
+        # global batch_size  
+        batch_size = array_ops.size(labels) # was 'array_ops.size(labels)'
+
+        # Compute the mask.
+        pdist_matrix_tile = array_ops.tile(pdist_matrix, [batch_size, 1])
+        mask = math_ops.logical_and(
+            array_ops.tile(adjacency_not, [batch_size, 1]),
+            math_ops.greater(
+                pdist_matrix_tile, array_ops.reshape(
+                    array_ops.transpose(pdist_matrix), [-1, 1])))
+        mask_final = array_ops.reshape(
+            math_ops.greater(
+                math_ops.reduce_sum(
+                    math_ops.cast(mask, dtype=dtypes.float32), 1, keepdims=True),
+                0.0), [batch_size, batch_size])
+        mask_final = array_ops.transpose(mask_final)
+
+        adjacency_not = math_ops.cast(adjacency_not, dtype=dtypes.float32)
+        mask = math_ops.cast(mask, dtype=dtypes.float32)
+
+        # negatives_outside: smallest D_an where D_an > D_ap.
+        negatives_outside = array_ops.reshape(
+            masked_minimum(pdist_matrix_tile, mask), [batch_size, batch_size])
+        negatives_outside = array_ops.transpose(negatives_outside)
+
+        # negatives_inside: largest D_an.
+        negatives_inside = array_ops.tile(
+            masked_maximum(pdist_matrix, adjacency_not), [1, batch_size])
+        semi_hard_negatives = array_ops.where(
+            mask_final, negatives_outside, negatives_inside)
+
+        loss_mat = math_ops.add(margin, pdist_matrix - semi_hard_negatives)
+
+        mask_positives = math_ops.cast(
+            adjacency, dtype=dtypes.float32) - array_ops.diag(
+            array_ops.ones([batch_size]))
+
+        # In lifted-struct, the authors multiply 0.5 for upper triangular
+        #   in semihard, they take all positive pairs except the diagonal.
+        num_positives = math_ops.reduce_sum(mask_positives)
+
+        semi_hard_triplet_loss_distance = math_ops.truediv(
+            math_ops.reduce_sum(
+                math_ops.maximum(
+                    math_ops.multiply(loss_mat, mask_positives), 0.0)),
+            num_positives,
+            name='triplet_semihard_loss')
+    
+        ### Code from Tensorflow function semi-hard triplet loss ENDS here.
+        return semi_hard_triplet_loss_distance
 class XGB_predictor(object):
     
     def __init__(self,  xgb_params):
@@ -202,6 +365,8 @@ def objective_fn(fspace,train_sets,val_sets):
     maps = []
     es = EarlyStopping(monitor='loss',patience=8, min_delta=0)
     rlr = ReduceLROnPlateau(monitor='loss',factor=0.5, patience=4, verbose=1, min_lr=0.0000001)
+    es2 = EarlyStopping(monitor='loss',patience=15, min_delta=0)
+    rlr2 = ReduceLROnPlateau(monitor='loss',factor=0.5, patience=2, verbose=1, min_lr=0.000000001)
     gcn_params = {
         "num_layers" : 3,
         "max_atoms" : 70,
@@ -248,8 +413,8 @@ def objective_fn(fspace,train_sets,val_sets):
         "max_bin" : int(fspace['max_bin']),
         "eval_metric":'auc',
         "objective":'binary:logistic',
-        "booster":'gbtree',
-        "single_precision_histogram" : True
+        "booster":'gbtree'
+        #"single_precision_histogram" : True
         }
     class_XGB = XGB_predictor(xgb_params)
     class_GCN = GCN_online_mining(gcn_params)
@@ -267,10 +432,11 @@ def objective_fn(fspace,train_sets,val_sets):
         
         gcn_mining.fit([X_atoms_train,X_bonds_train,X_edges_train,Y],
                        Y_dummy_train,
-                       epochs = gcn_params['epochs'],
+                       epochs = gcn_params['n_epochs'],
                        batch_size = gcn_params['batch_size'],
                        shuffle = True,
-                       validation_data = ([X_atoms_cold,X_bonds_cold,X_edges_cold,Y_cold],Y_dummy_cold)
+                       validation_data = ([X_atoms_cold,X_bonds_cold,X_edges_cold,Y_cold],Y_dummy_cold),
+                       callbacks=[es2,rlr2]
                       )
         #Predict Embeddings
         embeddings_cold = gcn_model.predict([X_atoms_cold,X_bonds_cold,X_edges_cold])
@@ -284,6 +450,7 @@ def objective_fn(fspace,train_sets,val_sets):
         xgb_model = class_XGB.build_model(dmatrix_train,evalist,300)
         xgb_pred_cold = xgb_model.predict(dmatrix_cold)
         maps.append(average_precision_score(Y_cold, xgb_pred_cold))
+        
     
     ave_map = np.mean(maps,axis = 0)
     return {'loss': -ave_map ,  'status': STATUS_OK}

@@ -20,7 +20,7 @@ fspace = {
     'dense2' : hp.quniform('dense2',96,512,32),
     'dense3' : hp.quniform('dense3',64,512,32),
     'dropout_rate' : hp.uniform('dropout_rate',0.1,0.5),
-    'lr' : hp.uniform('lr',0.00001,0.01),
+    'lr' : hp.uniform('lr',0.000001,0.01),
     'n_epochs' : hp.quniform('n_epochs',15,60,5),
     'batch_size' : hp.quniform('batch_size',64,512,32),
     'colsample_bylevel' : hp.uniform('colsample_bylevel', 0.1, 1), 
@@ -67,7 +67,7 @@ fmin_objective = partial(objective, train_sets = training_list, val_sets = valid
 def run_trials():
 
     trials_step = 4  # how many additional trials to do after loading saved trials. 1 = save after iteration
-    max_trials = 5  # initial max_trials. put something small to not have to wait
+    max_trials = 1  # initial max_trials. put something small to not have to wait
 
     
     try:  # try to load an already saved trials object, and increase the max
