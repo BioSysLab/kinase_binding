@@ -275,7 +275,7 @@ class GCN_online_mining_test(object):
         return [x_atoms_cold, x_bonds_cold, x_edges_cold]
     
     
-def triplet_loss_adapted_from_tf_2(y_true, y_pred,margin = 0.6011401246738063):
+def triplet_loss_adapted_from_tf_2(y_true, y_pred,margin = 1.000):
         del y_true
         margin = margin
         labels = y_pred[:, :1]
@@ -364,9 +364,9 @@ def objective_fn(fspace,train_sets,val_sets):
     K.clear_session()
     maps = []
     es = EarlyStopping(monitor='loss',patience=8, min_delta=0)
-    rlr = ReduceLROnPlateau(monitor='loss',factor=0.5, patience=4, verbose=1, min_lr=0.0000001)
-    es2 = EarlyStopping(monitor='loss',patience=15, min_delta=0)
-    rlr2 = ReduceLROnPlateau(monitor='loss',factor=0.5, patience=2, verbose=1, min_lr=0.000000001)
+    rlr = ReduceLROnPlateau(monitor='loss',factor=0.5, patience=4, verbose=0, min_lr=0.0000001)
+    #es2 = EarlyStopping(monitor='loss',patience=15, min_delta=0)
+    #rlr2 = ReduceLROnPlateau(monitor='loss',factor=0.5, patience=2, verbose=0, min_lr=0.000000001)
     gcn_params = {
         "num_layers" : 3,
         "max_atoms" : 70,
@@ -396,8 +396,8 @@ def objective_fn(fspace,train_sets,val_sets):
         'dropout_rate' : [fspace['dropout_rate'], fspace['dropout_rate']],
         'lr' : fspace['lr'],
         'batch_size' : int(fspace['batch_size']),
-        'n_epochs' : int(fspace['n_epochs']),
-        'margin' : fspace['margin']
+        'n_epochs' : int(fspace['n_epochs'])
+        #'margin' : fspace['margin']
         }
     xgb_params = {
         "colsample_bylevel" : fspace['colsample_bylevel'],
@@ -414,10 +414,9 @@ def objective_fn(fspace,train_sets,val_sets):
         "eval_metric":'auc',
         "objective":'binary:logistic',
         "booster":'gbtree'
-        #"single_precision_histogram" : True
         }
     class_XGB = XGB_predictor(xgb_params)
-    class_GCN = GCN_online_mining(gcn_params)
+    class_GCN = GCN_online_mining_test(gcn_params)
     for i in range(len(train_sets)):
         X_atoms_cold,X_bonds_cold,X_edges_cold = class_GCN.dataframe_to_gcn_input(val_sets[i])
         Y_cold = val_sets[i].Binary
@@ -436,7 +435,7 @@ def objective_fn(fspace,train_sets,val_sets):
                        batch_size = gcn_params['batch_size'],
                        shuffle = True,
                        validation_data = ([X_atoms_cold,X_bonds_cold,X_edges_cold,Y_cold],Y_dummy_cold),
-                       callbacks=[es2,rlr2]
+                       verbose = 0
                       )
         #Predict Embeddings
         embeddings_cold = gcn_model.predict([X_atoms_cold,X_bonds_cold,X_edges_cold])

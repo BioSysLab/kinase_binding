@@ -2,9 +2,7 @@ import pandas as pd
 from keras.callbacks import History, ReduceLROnPlateau,EarlyStopping,ModelCheckpoint
 import os
 import numpy as np
-from data_analysis import calculate_metrics, load_weights_and_evaluate
-from model_builders import GCN_pretraining
-from hyperparameter_tuning_GCN import objective
+from data_analysis import calculate_metrics
 from functools import partial
 from hyperopt import fmin, tpe, hp, STATUS_OK, Trials
 import pickle
@@ -20,7 +18,7 @@ fspace = {
     'dense2' : hp.quniform('dense2',96,512,32),
     'dense3' : hp.quniform('dense3',64,512,32),
     'dropout_rate' : hp.uniform('dropout_rate',0.1,0.5),
-    'lr' : hp.uniform('lr',0.000001,0.01),
+    'lr' : hp.uniform('lr',0.0000001,0.01),
     'n_epochs' : hp.quniform('n_epochs',15,60,5),
     'batch_size' : hp.quniform('batch_size',64,512,32),
     'colsample_bylevel' : hp.uniform('colsample_bylevel', 0.1, 1), 
@@ -33,8 +31,8 @@ fspace = {
     'reg_alpha' : hp.uniform('reg_alpha',0.1,100),
     'reg_lambda' : hp.uniform('reg_lambda',0.1,100),
     'subsample' : hp.uniform('subsample',0.1,1.0),
-    'max_bin' : hp.quniform('max_bin',16,256,16),
-    'margin' : hp.uniform('margin',0.2,2)
+    'max_bin' : hp.quniform('max_bin',16,256,16)
+    #'margin' : hp.uniform('margin',0.2,2)
 }
 
 target = 'p38'
@@ -63,10 +61,10 @@ validation_list = [df.loc[train_val_folds[0][1]],
                    df.loc[train_val_folds[5][1]],
                    ]
 
-fmin_objective = partial(objective, train_sets = training_list, val_sets = validation_list)
+fmin_objective = partial(objective_fn, train_sets = training_list, val_sets = validation_list)
 def run_trials():
 
-    trials_step = 4  # how many additional trials to do after loading saved trials. 1 = save after iteration
+    trials_step = 5  # how many additional trials to do after loading saved trials. 1 = save after iteration
     max_trials = 1  # initial max_trials. put something small to not have to wait
 
     
