@@ -64,7 +64,7 @@ validation_list = [df.loc[train_val_folds[0][1]],
 fmin_objective = partial(objective_fn, train_sets = training_list, val_sets = validation_list)
 def run_trials():
 
-    trials_step = 5  # how many additional trials to do after loading saved trials. 1 = save after iteration
+    trials_step = 4  # how many additional trials to do after loading saved trials. 1 = save after iteration
     max_trials = 1  # initial max_trials. put something small to not have to wait
 
     
